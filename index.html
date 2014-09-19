@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+	<head>
+  		<title>Twitictions</title>
+  		<link href="main.css" media="all" rel="stylesheet">
+  		<script src="js/jQuery.min.js"></script>
+        <script src="js/Graph.js"></script>
+	</head>
+	<body>
+		<div class="container">
+			<div class="jumbotron" style="overflow:hidden;">
+				<div class="container initial" style="display:inline-block;">
+					<h1>Twitictions</h1>
+					<br>
+					<br>
+					<form accept-charset="UTF-8" class="form-inline" id="search-form" method="get">
+						<div style="margin:0;padding:0;display:inline">
+						    <div class="form-group" style="width:50%;">
+						      <label class="sr-only" for="hashtag">Twitter Hashtag</label>
+						      <input class="form-control" id="hashtag" name="hashtag" placeholder="#mhacks" type="text">
+						    </div>
+						</div>
+					    <div class="form-group">
+						    <input class="btn btn-default" name="commit" type="submit" value="Search">
+						</div>
+					</form>
+					<img src="images/ajax-loader.gif" name="loader" width="32px" height="32px" style="display:none;margin-left:auto;margin-right:auto;margin-top:10px;"/>
+					<script type="text/javascript">
+						$(document).ready(function() {
+							var hashtagMain = "";
+							var canRefreshData = false;
+							$("form").live("submit", function(e) {
+								e.preventDefault();
+								$("form").parent().find("img[name='loader']").css("display", "block");
+								$("form").find("input[name='commit']").addClass("disabled");
+								$("form input").each(function() {
+									$(this).blur();
+								});
+								var data = {
+									route : "load", 
+									hashtag : $("form").find("input[name='hashtag']").val()
+								}
+								var hashtagThingy = $("input[name='hashtag']").val();
+								$.ajax({
+									url:"http://localhost:8001/tweetController.php",
+									data:data,
+									type: "GET",
+									success: function(d) {
+										var json = $.parseJSON(d);
+										$("form").parent().find("img[name='loader']").css("display", "none");
+								    	if (json.results && json.results.length > 0) {
+								    		hashtagMain = hashtagThingy;
+								    		$(".container.initial").css("position","relative").animate({ "top": "550px"}, 400, function() {
+								    			$(this).addClass("graph").removeClass("initial");
+								    			$(this).html('<h3 style="margin-top: 0px;">Showing graph for: '+hashtagThingy+'</h3><canvas id="graph" width="500" height="350">Your browser doesn\'t support canvas.</canvas>');
+								    			initializeGraph(data.hashtag, d);
+								    			var slope = getSlope();
+								    			if (slope > 0) {
+									    			$(this).append('<p>We predict the next few tweets will be <span class="changes positive" style="color:#0bafcc; font-weight:bold;">positive</span> about this topic.</p>');
+								    			} else if (slope < 0) {
+													$(this).append('<p>We predict the next few tweets will be <span class="changes positive" style="color:#cc420b; font-weight:bold;">negative</span> about this topic.</p>');
+								    			} else {
+								    				$(this).append('<p>We predict the next few tweets will be <span class="changes positive" style="font-weight:bold;">neutral</span> about this topic.</p>');
+								    			}
+								    			$(this).delay(400).animate({"top": "0px"}, 400);
+								    			canRefreshData = true;
+								    		});
+								    	} else {
+								    		console.log("No tweets found");
+								    	}
+									}
+								});
+								return false;
+							});
+
+							/*setInterval(function() {
+								if (canRefreshData == true) {
+									reloadData();
+								}
+							}, 100000);*/
+
+							function reloadData()
+							{
+								var data = {
+									route : "load", 
+									hashtag : hashtagMain
+								}
+								$.ajax({
+									url:"http://localhost:8001/tweetController.php",
+									data:data,
+									type: "GET",
+									success: function(d) {
+										var json = $.parseJSON(d);
+								    	if (json.results && json.results.length > 0) { // Update data
+								    		cleanCanvas();
+								   			initializeGraph(data.hashtag, d);
+								    	}
+									}
+								});
+							}
+						});
+					</script>
+					<br/>
+					<br/>
+					<p>Made with care by <a href="https://www.twitter.com/jtorraca">@jtorraca</a>(Joe Torraca), <a href="https://www.twitter.com/MossCouch">@MossCouch</a>(Brian Moss), <br>and his other twitterless teammate.</p>
+				</div>
+			</div>
+		</div>
+		<nav class="navbar navbar-default navbar-fixed-bottom" role="navigation">
+		  <div class="navbar-brand">Made at <a href="http://mhacks.org/" target="_blank">MHacks</a>.</div>
+		</nav>
+	</body>
+</html>
